@@ -295,7 +295,7 @@
       <div class="timer-time" id="timerTime">00:00:00</div>
       <div class="timer-sub" id="timerStart"></div>
       <button class="timer-btn start" id="timerBtn" onclick="toggleTimer()">▶︎ 開始配戴</button>
-      <div class="hint">戴上牙套按「開始」、取下時按「停止」。計時用時間戳記錄，就算把網頁關掉、手機鎖屏，再打開仍會繼續累計。每段的實際起訖時間都會存進紀錄。跨過午夜（0 點）的部分會自動分到隔天計算。</div>
+      <div class="hint">取下牙套（用餐、刷牙）時按「取下計時」，戴回去時按「戴回」。App 會記錄你每次取下的起訖時間，並自動算出配戴時數（一天扣掉取下的時間）。計時用時間戳，就算把網頁關掉、手機鎖屏，再打開仍會繼續累計；跨過午夜（0 點）的部分會自動分到隔天。</div>
     </div>
 
     <div class="card">
@@ -399,7 +399,7 @@
   <!-- ============ 紀錄 ============ -->
   <section class="page" id="page-records">
     <div class="card">
-      <h2>➕ 補登配戴紀錄</h2>
+      <h2>➕ 補登取下紀錄</h2>
       <div class="seg">
         <button class="on" id="segTime" onclick="setBackMode('time',this)">用時段</button>
         <button id="segHours" onclick="setBackMode('hours',this)">直接填時數</button>
@@ -407,19 +407,19 @@
       <label class="fld"><span class="t">日期</span><input type="date" id="bDate"></label>
       <div id="backTime">
         <div class="row2">
-          <label class="fld"><span class="t">開始時間</span><input type="time" id="bStart"></label>
-          <label class="fld"><span class="t">結束時間</span><input type="time" id="bEnd"></label>
+          <label class="fld"><span class="t">取下時間</span><input type="time" id="bStart"></label>
+          <label class="fld"><span class="t">戴回時間</span><input type="time" id="bEnd"></label>
         </div>
       </div>
       <div id="backHours" style="display:none">
-        <label class="fld"><span class="t">當天配戴時數</span><input type="number" id="bHours" inputmode="decimal" step="0.5" min="0" max="24" placeholder="小時"></label>
+        <label class="fld"><span class="t">當天取下總時數</span><input type="number" id="bHours" inputmode="decimal" step="0.5" min="0" max="24" placeholder="小時"></label>
       </div>
       <button class="btn" onclick="addBackfill()">新增紀錄</button>
-      <div class="hint">可補登過去任何一天。「用時段」會記下實際起訖時間；結束若早於開始會視為跨到隔天。</div>
+      <div class="hint">補登「取下（沒戴）」的時間，可填過去任何一天。「用時段」會記下實際取下起訖時間；戴回時間若早於取下會視為跨到隔天。配戴時數會自動＝當天時數扣掉取下。</div>
     </div>
 
     <div class="card">
-      <h2>📚 配戴歷史</h2>
+      <h2>📚 配戴／取下紀錄</h2>
       <div id="recordsList"></div>
     </div>
   </section>
@@ -652,7 +652,8 @@ function maybeNotify(){
 }
 
 /* ---------- daily totals ---------- */
-function minsForDate(dateStr){
+/* sessions 現在代表「取下(未配戴)」的時間區段 */
+function removedMinsForDate(dateStr){
   let m=0;
   db.sessions.forEach(x=>{if(x.date===dateStr)m+=x.mins;});
   if(db.timer.running){
@@ -660,14 +661,22 @@ function minsForDate(dateStr){
   }
   return m;
 }
-function dailyMap(){
-  const map={};
-  db.sessions.forEach(x=>{map[x.date]=(map[x.date]||0)+x.mins;});
-  if(db.timer.running){
-    splitByDay(db.timer.startTs,Date.now()).forEach(p=>{map[p.date]=(map[p.date]||0)+p.mins;});
-  }
-  return map;
+function elapsedMinsToday(){
+  const n=new Date();
+  const mid=new Date(n.getFullYear(),n.getMonth(),n.getDate(),0,0,0,0).getTime();
+  return Math.max(0,Math.round((Date.now()-mid)/60000));
 }
+/* 配戴時數 = 該日總時數 − 取下時間;今天用「已過的時間」當上限 */
+function wornMinsForDate(dateStr){
+  const removed=removedMinsForDate(dateStr);
+  const cap=(dateStr===todayStr())?elapsedMinsToday():24*60;
+  return Math.max(0,cap-removed);
+}
+/* 有取下記錄的日期(統計用);今天一律納入 */
+function trackedDates(){
+  const s=new Set();db.sessions.forEach(x=>s.add(x.date));s.add(todayStr());return s;
+}
+function fmtDur(mins){return mins<60?(mins+" 分鐘"):(fmtHrs(mins)+" 小時");}
 
 /* ---------- timer ---------- */
 function toggleTimer(){
@@ -677,10 +686,10 @@ function toggleTimer(){
       splitByDay(start,end).forEach(p=>db.sessions.push({id:"s"+p.startTs+"_"+p.endTs,date:p.date,startTs:p.startTs,endTs:p.endTs,mins:p.mins}));
     }
     db.timer={running:false,startTs:null};
-    save();stopTick();renderHome();toast("已停止並記錄本次配戴");
+    save();stopTick();renderHome();toast("已戴回，記錄本次取下時間");
   }else{
     db.timer={running:true,startTs:Date.now()};
-    save();startTick();renderHome();toast("開始計時，戴上牙套囉");
+    save();startTick();renderHome();toast("開始計時，牙套已取下");
   }
 }
 function renderTimer(){
@@ -692,14 +701,14 @@ function renderTimer(){
     const el=Date.now()-db.timer.startTs;
     const h=Math.floor(el/3600000),m=Math.floor(el%3600000/60000),s=Math.floor(el%60000/1000);
     tt.textContent=pad(h)+":"+pad(m)+":"+pad(s);
-    st.innerHTML='<span class="pulse"></span>配戴中…';
-    ts.textContent="開始於 "+hhmm(db.timer.startTs);
-    btn.textContent="■ 停止配戴";btn.className="timer-btn stop";
+    st.innerHTML='<span class="pulse"></span>牙套已取下…';
+    ts.textContent="取下於 "+hhmm(db.timer.startTs);
+    btn.textContent="■ 戴回（停止）";btn.className="timer-btn stop";
   }else{
     tt.textContent="00:00:00";
-    st.textContent="目前未計時";
+    st.textContent="配戴中（未取下）";
     ts.textContent="";
-    btn.textContent="▶︎ 開始配戴";btn.className="timer-btn start";
+    btn.textContent="▶︎ 取下計時（開始）";btn.className="timer-btn start";
   }
 }
 function startTick(){stopTick();tick=setInterval(()=>{renderTimer();updateWearRing();},1000);}
@@ -707,16 +716,19 @@ function stopTick(){if(tick){clearInterval(tick);tick=null;}}
 
 /* ---------- home ---------- */
 function updateWearRing(){
-  const mins=minsForDate(todayStr());
-  const hrs=Math.round(mins/60*10)/10;
+  const worn=wornMinsForDate(todayStr());
+  const removed=removedMinsForDate(todayStr());
+  const hrs=Math.round(worn/60*10)/10;
   document.getElementById("wearNum").textContent=hrs;
-  setArc("wearArc",mins/60/RING_MAX);
+  setArc("wearArc",worn/60/RING_MAX);
   const goal=db.settings.goal||22;
   const st=document.getElementById("wearStatus");
-  if(mins===0)st.textContent="今天還沒有紀錄";
-  else if(hrs>=goal)st.innerHTML="✅ 已達每日目標！";
+  if(db.timer.running){
+    const el=Math.round((Date.now()-db.timer.startTs)/60000);
+    st.innerHTML="🍽 牙套已取下 "+fmtDur(el);
+  }else if(hrs>=goal)st.innerHTML="✅ 已達每日目標！";
   else st.textContent="距目標還差 "+(Math.round((goal-hrs)*10)/10)+" 小時";
-  document.getElementById("wearGoalTxt").textContent="每日目標 "+goal+" 小時";
+  document.getElementById("wearGoalTxt").textContent="每日目標 "+goal+" 小時 ・ 今日已取下 "+fmtHrs(removed)+" 小時";
 }
 function setArc(id,frac){frac=Math.max(0,Math.min(1,frac));document.getElementById(id).style.strokeDashoffset=(C*(1-frac)).toFixed(1);}
 function renderHome(){
@@ -741,9 +753,9 @@ function renderHome(){
   updateWearRing();
   renderTimer();
   // stats for current tray
-  const map=dailyMap();const goal=db.settings.goal||22;const start=cs;
+  const goal=db.settings.goal||22;const start=cs;
   let sum=0,cnt=0,good=0;
-  for(const[d,m] of Object.entries(map)){if(!start||d>=start){sum+=m;cnt++;if(m/60>=goal)good++;}}
+  trackedDates().forEach(d=>{if(!start||d>=start){const w=wornMinsForDate(d);sum+=w;cnt++;if(w/60>=goal)good++;}});
   document.getElementById("sAvg").textContent=cnt?(Math.round(sum/cnt/60*10)/10):"–";
   document.getElementById("sDays").textContent=cnt;
   document.getElementById("sGood").textContent=good;
@@ -910,18 +922,21 @@ function renderRecords(){
   const groups={};
   db.sessions.forEach(x=>{(groups[x.date]=groups[x.date]||[]).push(x);});
   const dates=Object.keys(groups).sort().reverse();
-  if(!dates.length){list.innerHTML='<div class="empty"><span class="em">📚</span>還沒有配戴紀錄，用計時器或上方補登開始吧</div>';return;}
+  if(!dates.length){list.innerHTML='<div class="empty"><span class="em">📚</span>還沒有紀錄，用計時器或上方補登開始吧</div>';return;}
   const goal=db.settings.goal||22;
   list.innerHTML=dates.map(d=>{
     const segs=groups[d].slice().sort((a,b)=>(a.startTs||0)-(b.startTs||0));
-    const tot=segs.reduce((s,x)=>s+x.mins,0);
-    const ok=tot/60>=goal;
+    const removed=segs.reduce((s,x)=>s+x.mins,0);
+    const worn=wornMinsForDate(d);
+    const isToday=d===todayStr();
+    const ok=worn/60>=goal;
     const rows=segs.map(x=>{
       const label=x.startTs?(hhmm(x.startTs)+"–"+hhmm(x.endTs)):(x.manual?"手動補登":"—");
-      return `<div class="seg-row"><span>${label}　${fmtHrs(x.mins)} 小時</span><button class="li-del" onclick="delSession('${x.id}')">🗑</button></div>`;
+      return `<div class="seg-row"><span>${label}　取下 ${fmtDur(x.mins)}</span><button class="li-del" onclick="delSession('${x.id}')">🗑</button></div>`;
     }).join("");
     return `<div class="day-group">
-      <div class="day-head"><span class="d">${fmtDate(d)}</span><span class="tot ${ok?'ok':''}">${fmtHrs(tot)} 小時${ok?' ✅':''}</span></div>
+      <div class="day-head"><span class="d">${fmtDate(d)}${isToday?' ・今日':''}</span><span class="tot ${ok?'ok':''}">配戴約 ${fmtHrs(worn)}h${ok?' ✅':(isToday?'（進行中）':'')}</span></div>
+      <div class="seg-row" style="color:var(--faint)"><span>取下合計 ${fmtHrs(removed)} 小時（${segs.length} 次）</span></div>
       ${rows}
     </div>`;
   }).join("");
