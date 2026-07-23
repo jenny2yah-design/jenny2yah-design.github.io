@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f766e">
+<title>隱適美牙套追蹤</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f766e'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle' fill='white'%3E%F0%9F%A6%B7%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#eef3f1; --bg-tint:#e6edeb; --card:#ffffff; --card-2:#f7faf9;
+    --ink:#132420; --muted:#61736e; --faint:#8a9a95;
+    --line:#e5ecea; --line-soft:#eef3f1;
+    --accent:#0e8f80; --accent-deep:#0a6e63; --accent-bright:#12b3a1;
+    --accent-soft:#dcefec; --accent-ink:#0a5f57;
+    --good:#12925f; --warn:#b45309; --warn-bg:#fdeecb; --bad:#d1503a;
+    --run:#e05563; --run-deep:#c23a4c; --run-soft:#fbe6e9;
+    --r-card:22px; --r-btn:15px;
+    --sh-sm:0 1px 2px rgba(8,40,36,.05);
+    --sh:0 1px 2px rgba(8,40,36,.04), 0 10px 26px -12px rgba(8,45,40,.16);
+    --sh-lg:0 20px 48px -20px rgba(8,45,40,.30);
+    --glow:0 0 0 rgba(0,0,0,0);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0a1211; --bg-tint:#0e1817; --card:#111d1b; --card-2:#0d1817;
+      --ink:#e9f3f0; --muted:#93a8a3; --faint:#6f847f;
+      --line:#213230; --line-soft:#182422;
+      --accent:#2dd4bf; --accent-deep:#14b8a6; --accent-bright:#3ee7d1;
+      --accent-soft:#123c37; --accent-ink:#82f0e2;
+      --good:#34d399; --warn:#fcd777; --warn-bg:#3a2e10; --bad:#fb7185;
+      --run:#fb7185; --run-deep:#e5566f; --run-soft:#3a1620;
+      --sh-sm:0 1px 2px rgba(0,0,0,.3);
+      --sh:0 2px 20px rgba(0,0,0,.4); --sh-lg:0 24px 50px -20px rgba(0,0,0,.7);
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+    color:var(--ink); line-height:1.55; font-size:15px;
+    background:
+      radial-gradient(1100px 480px at 50% -8%, rgba(14,143,128,.10), transparent 70%),
+      radial-gradient(900px 500px at 100% 8%, rgba(18,179,161,.05), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    padding-bottom:calc(84px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px}
+  b,strong{font-weight:700}
+
+  header.app{
+    position:sticky;top:0;z-index:20;
+    background:color-mix(in srgb, var(--bg) 78%, transparent);
+    backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);
+    padding:calc(14px + env(safe-area-inset-top)) 18px 12px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid transparent;
+  }
+  header.app h1{font-size:19px;margin:0;font-weight:800;letter-spacing:.2px}
+  header.app .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{
+    width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:18px;
+    background:linear-gradient(140deg,var(--accent-bright),var(--accent-deep));
+    box-shadow:0 6px 14px -5px rgba(14,143,128,.6), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .ghost-btn{
+    background:var(--card);border:1px solid var(--line);color:var(--muted);
+    border-radius:12px;padding:8px 13px;font-size:13px;font-weight:600;box-shadow:var(--sh-sm);
+    transition:transform .12s ease;
+  }
+  .ghost-btn:active{transform:scale(.96)}
+
+  section.page{display:none}
+  section.page.active{display:block;animation:fade .32s cubic-bezier(.2,.7,.2,1)}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);
+    padding:20px;box-shadow:var(--sh);margin-bottom:15px;position:relative;
+  }
+  .card h2{
+    font-size:13px;margin:0 0 14px;color:var(--muted);font-weight:700;letter-spacing:.3px;
+    display:flex;align-items:center;gap:8px;
+  }
+
+  .banner{
+    border-radius:15px;padding:14px 16px;margin-bottom:12px;font-size:14px;font-weight:600;
+    display:flex;align-items:center;gap:10px;box-shadow:var(--sh-sm);
+    border:1px solid transparent;animation:fade .3s ease;
+  }
+  .banner.due{background:linear-gradient(180deg,#fff1f0,#ffe7e4);color:#a3341f;border-color:#f6d3cc}
+  .banner.soon{background:linear-gradient(180deg,#fff8e8,#fdf0d2);color:#8a5a10;border-color:#f2e0b6}
+  @media (prefers-color-scheme: dark){
+    .banner.due{background:linear-gradient(180deg,#3a1a1c,#2c1416);color:#fca5a5;border-color:#4d2226}
+    .banner.soon{background:linear-gradient(180deg,#3a2f12,#2c240d);color:#fcd777;border-color:#4a3c16}
+  }
+
+  /* hero */
+  .hero{
+    color:#fff;border:none;padding:24px 20px 20px;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 8% 0%, rgba(255,255,255,.22), transparent 45%),
+      linear-gradient(155deg,var(--accent-bright) 0%, var(--accent) 46%, var(--accent-deep) 100%);
+    box-shadow:0 18px 40px -18px rgba(10,110,99,.65), inset 0 1px 0 rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .hero::after{content:"";position:absolute;right:-40px;top:-50px;width:180px;height:180px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.18),transparent 70%);pointer-events:none}
+  .hero .lbl{font-size:12px;opacity:.9;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+  .hero .tray-no{font-size:64px;font-weight:800;line-height:1;margin:6px 0 2px;letter-spacing:-1px;
+    text-shadow:0 2px 12px rgba(0,0,0,.12)}
+  .hero .tray-no small{font-size:22px;font-weight:600;opacity:.75;letter-spacing:0}
+  .hero .sub{font-size:14px;opacity:.95;margin-top:2px;font-weight:500}
+  .hero .countdown{margin-top:18px;background:transparent;padding:0;display:flex;gap:9px}
+  .hero .countdown .sep{display:none}
+  .hero .countdown>div{flex:1;text-align:center;background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.22);border-radius:15px;padding:11px 6px;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  .hero .countdown b{display:block;font-size:25px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+  .hero .countdown span{font-size:11px;opacity:.9;font-weight:600}
+  .hero-actions{display:flex;gap:9px;margin-top:16px}
+  .hero-actions button{flex:1;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);
+    color:#fff;font-weight:700;font-size:14px;padding:13px;border-radius:14px;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:transform .12s ease,background .15s}
+  .hero-actions button:active{background:rgba(255,255,255,.3);transform:scale(.97)}
+
+  /* timer */
+  .timer-card{text-align:center}
+  .timer-time{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px;margin:4px 0;
+    background:linear-gradient(180deg,var(--ink),color-mix(in srgb,var(--ink) 65%, var(--muted)));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .timer-sub{font-size:13px;color:var(--muted);min-height:18px;font-weight:600}
+  .timer-btn{margin-top:16px;width:100%;border:none;border-radius:16px;padding:17px;font-size:17px;font-weight:800;color:#fff;
+    letter-spacing:.5px;transition:transform .12s ease,filter .15s;box-shadow:0 12px 24px -10px rgba(0,0,0,.4)}
+  .timer-btn:active{transform:scale(.98)}
+  .timer-btn.start{background:linear-gradient(135deg,var(--accent-bright),var(--accent-deep));box-shadow:0 12px 26px -10px rgba(14,143,128,.75)}
+  .timer-btn.stop{background:linear-gradient(135deg,var(--run),var(--run-deep));box-shadow:0 12px 26px -10px rgba(224,85,99,.7)}
+  .pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--run);margin-right:7px;
+    box-shadow:0 0 0 0 rgba(224,85,99,.6);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,85,99,.5)}70%{box-shadow:0 0 0 8px rgba(224,85,99,0)}100%{box-shadow:0 0 0 0 rgba(224,85,99,0)}}
+
+  /* rings */
+  .ring-row{display:flex;align-items:center;gap:20px}
+  .ring{position:relative;width:120px;height:120px;flex:none}
+  .ring svg{transform:rotate(-90deg);display:block}
+  .ring svg circle:last-child{transition:stroke-dashoffset .7s cubic-bezier(.3,.8,.3,1);
+    filter:drop-shadow(0 2px 5px rgba(14,143,128,.45))}
+  .ring .ctr{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+  .ring .ctr b{font-size:27px;font-weight:800;line-height:1;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .ring .ctr span{font-size:11px;color:var(--muted);font-weight:600}
+  .ring-info{flex:1;min-width:0}
+  .ring-info .goal{font-size:13px;color:var(--muted);font-weight:500}
+  .ring-info .big{font-size:19px;font-weight:700;margin:2px 0}
+
+  /* forms */
+  label.fld{display:block;margin-bottom:13px}
+  label.fld .t{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:6px;display:block;letter-spacing:.2px}
+  input,select,textarea{
+    width:100%;font:inherit;color:var(--ink);background:var(--bg-tint);
+    border:1px solid var(--line);border-radius:13px;padding:12px 13px;transition:border-color .15s,box-shadow .15s,background .15s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:var(--card);
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%, transparent)}
+  textarea{resize:vertical;min-height:74px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    background:linear-gradient(135deg,var(--accent-bright),var(--accent-deep));color:#fff;border:none;
+    border-radius:var(--r-btn);padding:13px 16px;font-weight:700;font-size:15px;width:100%;letter-spacing:.3px;
+    box-shadow:0 10px 22px -12px rgba(14,143,128,.8);transition:transform .12s ease,filter .15s}
+  .btn:active{transform:scale(.98);filter:brightness(.97)}
+  .btn.sec{background:var(--accent-soft);color:var(--accent-ink);box-shadow:none}
+  .btn.line{background:var(--card);border:1px solid var(--line);color:var(--ink);box-shadow:var(--sh-sm)}
+  .btn.sm{width:auto;padding:10px 15px;font-size:14px;border-radius:12px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:var(--bg-tint);color:var(--muted);border-radius:999px;
+    padding:9px 14px;font-size:13px;font-weight:600;transition:transform .1s ease,background .15s,color .15s}
+  .chip:active{transform:scale(.95)}
+  .chip.on{background:linear-gradient(135deg,var(--accent-soft),color-mix(in srgb,var(--accent-soft) 60%,var(--card)));
+    color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+
+  .list-item{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line-soft)}
+  .list-item:first-child{border-top:none}
+  .li-date{font-size:12px;color:var(--faint);font-weight:600}
+  .li-tag{display:inline-block;background:var(--accent-soft);color:var(--accent-ink);border-radius:7px;
+    padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px}
+  .li-body{flex:1;min-width:0}
+  .li-body .txt{font-size:14px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+  .li-del{color:var(--faint);background:none;border:none;font-size:17px;padding:0 4px;align-self:flex-start;transition:transform .1s,color .15s}
+  .li-del:active{transform:scale(.85);color:var(--bad)}
+
+  .day-group{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:11px;background:var(--card-2)}
+  .day-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .day-head .d{font-weight:800;font-size:15px}
+  .day-head .tot{font-size:13px;font-weight:700;color:var(--muted)}
+  .day-head .tot.ok{color:var(--good)}
+  .seg-row{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;
+    padding:6px 0;border-top:1px dashed var(--line)}
+  .seg-row:first-of-type{border-top:none}
+
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .photo-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg-tint);
+    box-shadow:var(--sh-sm);transition:transform .12s ease}
+  .photo-card:active{transform:scale(.98)}
+  .photo-card img{width:100%;height:152px;object-fit:cover;display:block}
+  .photo-meta{padding:9px 11px;font-size:12px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .empty{text-align:center;color:var(--faint);font-size:14px;padding:28px 10px;font-weight:500}
+  .empty .em{font-size:36px;display:block;margin-bottom:8px;opacity:.7}
+
+  /* tab bar */
+  nav.tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:color-mix(in srgb, var(--card) 82%, transparent);
+    backdrop-filter:saturate(1.5) blur(18px);-webkit-backdrop-filter:saturate(1.5) blur(18px);
+    border-top:1px solid var(--line);display:flex;padding:6px 6px env(safe-area-inset-bottom);
+  }
+  nav.tabbar button{flex:1;background:none;border:none;color:var(--faint);padding:6px 0 5px;
+    font-size:10.5px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+  nav.tabbar button .ic{font-size:19px;line-height:1;width:52px;height:30px;display:grid;place-items:center;
+    border-radius:12px;transition:background .2s ease}
+  nav.tabbar button.on{color:var(--accent)}
+  nav.tabbar button.on .ic{background:var(--accent-soft)}
+
+  /* modal/sheet */
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(10,25,22,.5);display:none;align-items:flex-end;
+    backdrop-filter:blur(2px);animation:fade .2s ease}
+  .modal.open{display:flex}
+  .sheet{background:var(--card);width:100%;max-width:520px;margin:0 auto;border-radius:26px 26px 0 0;
+    padding:22px 20px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;box-shadow:var(--sh-lg);
+    animation:slideup .34s cubic-bezier(.2,.8,.2,1)}
+  @keyframes slideup{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  .sheet h3{margin:0 0 16px;font-size:18px;font-weight:800}
+  .sheet .grab{width:40px;height:5px;background:var(--line);border-radius:3px;margin:0 auto 16px}
+  .hint{font-size:12px;color:var(--faint);margin-top:9px;line-height:1.6}
+  .hint b{color:var(--muted)}
+  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(8px);
+    background:color-mix(in srgb,var(--ink) 92%,#000);color:var(--card);padding:12px 20px;border-radius:14px;
+    font-size:14px;font-weight:700;z-index:80;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
+    max-width:90%;text-align:center;box-shadow:var(--sh-lg)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .stat-mini{display:flex;gap:11px}
+  .stat-mini .m{flex:1;background:var(--card-2);border:1px solid var(--line);border-radius:15px;padding:13px 8px;text-align:center}
+  .stat-mini .m b{display:block;font-size:22px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;
+    color:var(--accent-ink)}
+  .stat-mini .m span{font-size:11px;color:var(--muted);font-weight:600}
+  @media (prefers-color-scheme: dark){.stat-mini .m b{color:var(--accent)}}
+
+  .seg{display:flex;background:var(--bg-tint);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px}
+  .seg button{flex:1;border:none;background:none;color:var(--muted);font-weight:700;font-size:13px;padding:9px;
+    border-radius:10px;transition:background .2s,color .2s,box-shadow .2s}
+  .seg button.on{background:var(--card);color:var(--accent-ink);box-shadow:var(--sh-sm)}
+
+  .info-line{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:11px 0;border-top:1px solid var(--line-soft)}
+  .info-line:first-child{border-top:none}
+  .info-line .k{color:var(--muted);font-weight:500}
+  .info-line .v{font-weight:700;text-align:right}
+  .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+  .switch input{width:auto;accent-color:var(--accent)}
+  input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand"><div class="logo">🦷</div><h1>牙套追蹤</h1></div>
+  <button class="ghost-btn" onclick="openSettings()">⚙︎ 設定</button>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ 首頁 ============ -->
+  <section class="page active" id="page-home">
+    <div id="banners"></div>
+
+    <div class="card hero">
+      <div class="lbl">目前牙套</div>
+      <div class="tray-no"><span id="hTray">—</span><small id="hTotal"></small></div>
+      <div class="sub" id="hStart">尚未設定</div>
+      <div class="countdown" id="hCountdown"></div>
+      <div class="hero-actions">
+        <button onclick="advanceTray()">➡️ 換下一副</button>
+        <button onclick="openTrayEdit()">✎ 編輯這副</button>
+      </div>
+    </div>
+
+    <div class="card timer-card" id="timerCard">
+      <h2 style="justify-content:center">⏱ 配戴計時器</h2>
+      <div class="timer-sub" id="timerState">目前未計時</div>
+      <div class="timer-time" id="timerTime">00:00:00</div>
+      <div class="timer-sub" id="timerStart"></div>
+      <button class="timer-btn start" id="timerBtn" onclick="toggleTimer()">▶︎ 開始配戴</button>
+      <div class="hint">戴上牙套按「開始」、取下時按「停止」。計時用時間戳記錄，就算把網頁關掉、手機鎖屏，再打開仍會繼續累計。每段的實際起訖時間都會存進紀錄。跨過午夜（0 點）的部分會自動分到隔天計算。</div>
+    </div>
+
+    <div class="card">
+      <h2>📈 今日配戴時數</h2>
+      <div class="ring-row">
+        <div class="ring">
+          <svg width="112" height="112" viewBox="0 0 112 112">
+            <circle cx="56" cy="56" r="48" fill="none" stroke="var(--line)" stroke-width="11"/>
+            <circle id="wearArc" cx="56" cy="56" r="48" fill="none" stroke="var(--accent)" stroke-width="11" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+          </svg>
+          <div class="ctr"><div><b id="wearNum">0</b><span>/ 24 小時</span></div></div>
+        </div>
+        <div class="ring-info">
+          <div class="big" id="wearDateLbl"></div>
+          <div class="goal" id="wearStatus">今天還沒有紀錄</div>
+          <div class="goal" id="wearGoalTxt" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 本副概況</h2>
+      <div class="stat-mini">
+        <div class="m"><b id="sAvg">–</b><span>平均時數/天</span></div>
+        <div class="m"><b id="sDays">0</b><span>已記錄天數</span></div>
+        <div class="m"><b id="sGood">0</b><span>達標天數</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 進度 ============ -->
+  <section class="page" id="page-trays">
+    <div class="card">
+      <h2>🦷 療程進度</h2>
+      <div class="ring-row">
+        <div class="ring">
+          <svg width="112" height="112" viewBox="0 0 112 112">
+            <circle cx="56" cy="56" r="48" fill="none" stroke="var(--line)" stroke-width="11"/>
+            <circle id="progArc" cx="56" cy="56" r="48" fill="none" stroke="var(--accent)" stroke-width="11" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+          </svg>
+          <div class="ctr"><div><b id="progPct">0%</b><span>完成</span></div></div>
+        </div>
+        <div class="ring-info">
+          <div class="big" id="progTxt">第 0 / 0 副</div>
+          <div class="goal" id="progLeft">尚未設定總副數</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>✎ 療程設定</h2>
+      <label class="fld"><span class="t">療程開始日（第一副開始配戴日）</span><input type="date" id="tStartDate"></label>
+      <label class="fld"><span class="t">目前第幾副</span><input type="number" id="tCur" inputmode="numeric" min="1"></label>
+      <div class="row2">
+        <label class="fld"><span class="t">上排總副數</span><input type="number" id="tUpper" inputmode="numeric" min="1" placeholder="例:25"></label>
+        <label class="fld"><span class="t">下排總副數</span><input type="number" id="tLower" inputmode="numeric" min="1" placeholder="例:20"></label>
+      </div>
+      <button class="btn" onclick="saveTherapy()">儲存</button>
+      <div class="hint">上下排副數不同沒關係，可分別填。系統會依「開始日＋下方天數排程」自動算出每一副的日期。</div>
+    </div>
+
+    <div class="card">
+      <h2>🗓 換牙套天數排程</h2>
+      <div id="scheduleRows"></div>
+      <button class="btn line sm" style="width:auto;margin-top:4px" onclick="addSchedRow()">＋ 新增一段</button>
+      <button class="btn sec sm" style="width:auto;margin-top:4px" onclick="fillSampleSchedule()">帶入範例</button>
+      <button class="btn" style="margin-top:12px" onclick="saveSchedule()">儲存排程</button>
+      <div class="hint">例如「1–3 副各 10 天、4–25 副各 7 天」。牙醫袋子上寫的是每副日期範圍，這裡只要填天數，系統就會照開始日推算。「帶入範例」會填入 1–3 副 10 天、4 副之後 7 天。</div>
+    </div>
+
+    <div class="card">
+      <h2>📌 目前這副</h2>
+      <div class="info-line"><span class="k">副數</span><span class="v" id="cInfoNo">–</span></div>
+      <div class="info-line"><span class="k">配戴日期</span><span class="v" id="cInfoRange">–</span></div>
+      <div class="info-line"><span class="k">距換牙套</span><span class="v" id="cInfoLeft">–</span></div>
+      <label class="fld" style="margin-top:12px"><span class="t">這副實際開始日（可校正，通常＝牙醫寫的起始日）</span><input type="date" id="cStart"></label>
+      <button class="btn sec" onclick="saveCurStart()">儲存這副開始日</button>
+      <div class="hint">牙醫說「第一天晚上開始戴」，所以開始日填牙醫寫的起始日即可。到了下一副的起始日當天，就是晚上刷完牙換下一副的日子。</div>
+    </div>
+
+    <div class="card">
+      <h2>📅 換牙套時程預覽</h2>
+      <div id="schedulePreview"></div>
+    </div>
+
+    <div class="card">
+      <h2>🔔 提醒設定</h2>
+      <div class="info-line"><span class="k">下次換牙套</span><span class="v" id="rChange">–</span></div>
+      <div class="info-line"><span class="k">回診日</span><span class="v" id="rVisitShow">未設定</span></div>
+      <label class="fld" style="margin-top:12px"><span class="t">回診日期</span><input type="date" id="rVisit"></label>
+      <button class="btn sec" onclick="saveVisit()">儲存回診日</button>
+      <div class="hint">到期前會在首頁顯示提醒橫幅。若在設定裡開啟通知，打開 App 時也會跳出系統通知。</div>
+    </div>
+
+    <div class="card">
+      <h2>🕘 換牙套紀錄</h2>
+      <div id="trayHistory"></div>
+    </div>
+  </section>
+
+  <!-- ============ 紀錄 ============ -->
+  <section class="page" id="page-records">
+    <div class="card">
+      <h2>➕ 補登配戴紀錄</h2>
+      <div class="seg">
+        <button class="on" id="segTime" onclick="setBackMode('time',this)">用時段</button>
+        <button id="segHours" onclick="setBackMode('hours',this)">直接填時數</button>
+      </div>
+      <label class="fld"><span class="t">日期</span><input type="date" id="bDate"></label>
+      <div id="backTime">
+        <div class="row2">
+          <label class="fld"><span class="t">開始時間</span><input type="time" id="bStart"></label>
+          <label class="fld"><span class="t">結束時間</span><input type="time" id="bEnd"></label>
+        </div>
+      </div>
+      <div id="backHours" style="display:none">
+        <label class="fld"><span class="t">當天配戴時數</span><input type="number" id="bHours" inputmode="decimal" step="0.5" min="0" max="24" placeholder="小時"></label>
+      </div>
+      <button class="btn" onclick="addBackfill()">新增紀錄</button>
+      <div class="hint">可補登過去任何一天。「用時段」會記下實際起訖時間；結束若早於開始會視為跨到隔天。</div>
+    </div>
+
+    <div class="card">
+      <h2>📚 配戴歷史</h2>
+      <div id="recordsList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 照片 ============ -->
+  <section class="page" id="page-photos">
+    <div class="card">
+      <h2>📷 照片記錄</h2>
+      <button class="btn" onclick="document.getElementById('photoFile').click()">＋ 新增照片</button>
+      <input type="file" id="photoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoPicked(event)">
+      <div class="hint">照片會自動壓縮後存在你手機本機，不會上傳。建議固定角度拍攝方便比對。</div>
+    </div>
+    <div class="card">
+      <div class="photo-grid" id="photoGrid"></div>
+      <div class="empty" id="photoEmpty"><span class="em">📷</span>還沒有照片，拍一張開始記錄吧</div>
+    </div>
+  </section>
+
+  <!-- ============ 備註 ============ -->
+  <section class="page" id="page-notes">
+    <div class="card">
+      <h2>📝 新增備註 / 症狀</h2>
+      <div class="chips" id="sympChips" style="margin-bottom:12px"></div>
+      <label class="fld"><span class="t">備註內容</span><textarea id="noteText" placeholder="例:附件不適、痠痛、回診重點、咬膠使用…"></textarea></label>
+      <button class="btn" onclick="saveNote()">儲存備註</button>
+    </div>
+    <div class="card">
+      <h2>📖 備註記錄</h2>
+      <div id="notesList"></div>
+    </div>
+  </section>
+
+</div>
+
+<nav class="tabbar">
+  <button class="on" data-p="home" onclick="go('home',this)"><span class="ic">🏠</span>首頁</button>
+  <button data-p="trays" onclick="go('trays',this)"><span class="ic">🦷</span>進度</button>
+  <button data-p="records" onclick="go('records',this)"><span class="ic">📚</span>紀錄</button>
+  <button data-p="photos" onclick="go('photos',this)"><span class="ic">📷</span>照片</button>
+  <button data-p="notes" onclick="go('notes',this)"><span class="ic">📝</span>備註</button>
+</nav>
+
+<!-- settings sheet -->
+<div class="modal" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>設定與備份</h3>
+    <label class="fld"><span class="t">每日配戴目標（小時，用於達標判定）</span><input type="number" id="setGoal" inputmode="decimal" step="0.5" min="1" max="24"></label>
+    <div class="switch"><span>開啟到期提醒通知</span><input type="checkbox" id="setNotify" onchange="onNotifyToggle()"></div>
+    <div class="hint" style="margin-top:0">開啟後，打開 App 時若有到期的換牙套或回診提醒，會跳出系統通知（需允許瀏覽器通知權限）。網頁完全關閉時無法背景推播，這是純本機網頁的限制。</div>
+    <button class="btn" style="margin-top:14px" onclick="saveSettings()">儲存設定</button>
+    <div style="height:18px"></div>
+    <h3 style="font-size:15px">資料備份</h3>
+    <p class="hint" style="margin-top:0">所有資料只存在這支手機的瀏覽器裡。換手機、清除瀏覽器資料前，記得先「匯出備份」保存檔案；新手機再用「匯入備份」還原。</p>
+    <div class="row2" style="margin-top:12px">
+      <button class="btn sec sm" style="width:auto" onclick="exportData()">⬇︎ 匯出備份</button>
+      <button class="btn line sm" style="width:auto" onclick="document.getElementById('importFile').click()">⬆︎ 匯入備份</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
+    <div style="height:18px"></div>
+    <button class="btn line" style="color:var(--bad)" onclick="wipeAll()">清除所有資料</button>
+    <p class="hint">📌 加到主畫面：在瀏覽器選單點「加入主畫面 / 加到主畫面」，就能像 App 一樣全螢幕使用。</p>
+  </div>
+</div>
+
+<!-- photo view sheet -->
+<div class="modal" id="photoModal" onclick="if(event.target===this)closePhoto()">
+  <div class="sheet">
+    <div class="grab"></div>
+    <img id="photoBig" style="width:100%;border-radius:14px" alt="">
+    <p class="hint" id="photoBigMeta" style="text-align:center;font-size:13px"></p>
+    <button class="btn line" style="color:var(--bad)" onclick="deleteCurrentPhoto()">刪除這張照片</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const KEY="aligner_tracker_v2";
+const SYMPTOMS=["痠痛","咬膠","附件不適","口腔潰瘍","牙齒鬆動感","更換順利","其他"];
+const C=2*Math.PI*48;
+const RING_MAX=24; // 今日圓環以 24 小時為滿
+const CUTOFF_HOUR=0; // 換日分界:0點(午夜)為界
+
+let db=load();
+let selSymptoms=new Set();
+let curPhotoId=null;
+let backMode="time";
+let tick=null;
+
+/* ---------- storage & migration ---------- */
+function defaults(){return {settings:{goal:22,notify:false}, tray:{cur:1,totalUpper:null,totalLower:null,startDate:null,schedule:[],overrides:{}}, reminders:{nextVisit:null}, sessions:[], timer:{running:false,startTs:null}, photos:[], notes:[], history:[]};}
+function load(){
+  let d=defaults();
+  try{
+    const raw=localStorage.getItem(KEY)||localStorage.getItem("aligner_tracker_v1");
+    if(raw){const p=JSON.parse(raw); d=mergeDeep(d,p);}
+  }catch(e){}
+  // migrate old daily wear{} -> manual sessions
+  if(d.wear&&typeof d.wear==="object"){
+    for(const [date,h] of Object.entries(d.wear)){
+      if(h>0)d.sessions.push({id:"m"+date,date,startTs:null,endTs:null,mins:Math.round(h*60),manual:true});
+    }
+    delete d.wear;
+  }
+  if(!d.timer)d.timer={running:false,startTs:null};
+  if(!d.sessions)d.sessions=[];
+  if(!d.reminders)d.reminders={nextVisit:null};
+  // migrate old tray shape {cur,total,days,start} -> new schedule model
+  const t=d.tray||{};
+  if(!t.schedule)t.schedule=[];
+  if(!t.overrides)t.overrides={};
+  if(t.startDate==null&&t.start)t.startDate=t.start;
+  if(t.totalUpper==null&&t.total)t.totalUpper=t.total;
+  if(t.totalLower==null&&t.total)t.totalLower=t.total;
+  if(t.schedule.length===0&&t.days)t.schedule=[{from:1,to:null,days:t.days}];
+  delete t.start;delete t.total;delete t.days;
+  d.tray=t;
+  return d;
+}
+function mergeDeep(base,ext){
+  const out=Array.isArray(base)?ext:Object.assign({},base);
+  for(const k in ext){
+    if(ext[k]&&typeof ext[k]==="object"&&!Array.isArray(ext[k])&&base[k]&&typeof base[k]==="object")out[k]=mergeDeep(base[k],ext[k]);
+    else out[k]=ext[k];
+  }
+  return out;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){toast("儲存失敗，可能容量已滿");}}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2000);}
+
+/* ---------- date/time helpers ---------- */
+function pad(n){return String(n).padStart(2,"0");}
+// 邏輯日期:把時間往前推 CUTOFF_HOUR 小時再取日期,使凌晨2點前歸到前一天
+function logicalDateStr(ts){const d=new Date(ts-CUTOFF_HOUR*3600000);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function todayStr(){return logicalDateStr(Date.now());}
+function dateStrFromTs(ts){const d=new Date(ts);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function hhmm(ts){const d=new Date(ts);return pad(d.getHours())+":"+pad(d.getMinutes());}
+function daysBetween(a,b){return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000);}
+function addDays(s,n){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function fmtDate(s){if(!s)return"";const[y,m,d]=s.split("-");return `${y}/${m}/${d}`;}
+function fmtHrs(mins){return Math.round(mins/60*10)/10;}
+
+/* 下一個換日分界(凌晨2點)的時間戳 */
+function nextBoundary(ts){
+  const d=new Date(ts);
+  let b=new Date(d.getFullYear(),d.getMonth(),d.getDate(),CUTOFF_HOUR,0,0,0).getTime();
+  if(b<=ts)b=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1,CUTOFF_HOUR,0,0,0).getTime();
+  return b;
+}
+/* 把一段 [startTs,endTs] 依「凌晨2點換日」切成各日區塊;跨午夜但未過2點者仍算同一天 */
+function splitByDay(startTs,endTs){
+  const out=[];let s=startTs;
+  while(s<endTs){
+    const b=nextBoundary(s);
+    const e=Math.min(endTs,b);
+    out.push({date:logicalDateStr(s),startTs:s,endTs:e,mins:Math.round((e-s)/60000)});
+    s=e;
+  }
+  return out;
+}
+
+/* ---------- navigation ---------- */
+function go(p,btn){
+  document.querySelectorAll(".page").forEach(s=>s.classList.remove("active"));
+  document.getElementById("page-"+p).classList.add("active");
+  document.querySelectorAll("nav.tabbar button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  window.scrollTo(0,0);
+  if(p==="home")renderHome();
+  if(p==="trays")renderTrays();
+  if(p==="records")renderRecords();
+  if(p==="photos")renderPhotos();
+  if(p==="notes")renderNotes();
+}
+
+/* ---------- reminders ---------- */
+/* ---- 排程計算 ---- */
+function daysForTray(n){
+  for(const r of (db.tray.schedule||[])){
+    if(n>=r.from&&(r.to==null||n<=r.to))return r.days;
+  }
+  return null;
+}
+function maxTotal(){return Math.max(db.tray.totalUpper||0,db.tray.totalLower||0)||null;}
+function trayStartDate(n){
+  if(n<1)return null;
+  const ov=db.tray.overrides||{};
+  if(ov[n])return ov[n];
+  if(n===1)return db.tray.startDate||null;
+  const prev=trayStartDate(n-1);
+  if(!prev)return null;
+  const dd=daysForTray(n-1);
+  if(dd==null)return null;
+  return addDays(prev,dd);
+}
+function trayEndDate(n){ // 袋子上的結束日 = 下一副起始日的前一天
+  const next=trayStartDate(n+1);
+  if(next)return addDays(next,-1);
+  const s=trayStartDate(n),dd=daysForTray(n);
+  return (s&&dd!=null)?addDays(s,dd-1):null;
+}
+function changeDueDate(){return trayStartDate((db.tray.cur||0)+1);} // 換下一副的日子=下一副起始日
+function checkReminders(){
+  const out=[];const t=todayStr();
+  const dd=changeDueDate();
+  const nextNo=(db.tray.cur||0)+1;
+  if(dd){const n=daysBetween(t,dd);
+    if(n<0)out.push({urgent:true,text:`換牙套已逾期 ${-n} 天，記得換第 ${nextNo} 副`});
+    else if(n===0)out.push({urgent:true,text:`今晚刷完牙後換第 ${nextNo} 副牙套 🦷`});
+    else if(n<=2)out.push({urgent:false,text:`還有 ${n} 天要換第 ${nextNo} 副（${fmtDate(dd)} 晚上）`});
+  }
+  const nv=db.reminders.nextVisit;
+  if(nv){const n=daysBetween(t,nv);
+    if(n===0)out.push({urgent:true,text:"今天要回診 🏥"});
+    else if(n>0&&n<=3)out.push({urgent:false,text:`回診日還有 ${n} 天（${fmtDate(nv)}）`});
+  }
+  return out;
+}
+function renderBanners(){
+  const box=document.getElementById("banners");
+  const rs=checkReminders();
+  box.innerHTML=rs.map(r=>`<div class="banner ${r.urgent?'due':'soon'}">${r.urgent?'🔔':'⏳'} ${r.text}</div>`).join("");
+}
+function maybeNotify(){
+  if(!db.settings.notify)return;
+  if(!("Notification" in window)||Notification.permission!=="granted")return;
+  checkReminders().filter(r=>r.urgent).forEach(r=>{try{new Notification("牙套提醒",{body:r.text});}catch(e){}});
+}
+
+/* ---------- daily totals ---------- */
+function minsForDate(dateStr){
+  let m=0;
+  db.sessions.forEach(x=>{if(x.date===dateStr)m+=x.mins;});
+  if(db.timer.running){
+    splitByDay(db.timer.startTs,Date.now()).forEach(p=>{if(p.date===dateStr)m+=p.mins;});
+  }
+  return m;
+}
+function dailyMap(){
+  const map={};
+  db.sessions.forEach(x=>{map[x.date]=(map[x.date]||0)+x.mins;});
+  if(db.timer.running){
+    splitByDay(db.timer.startTs,Date.now()).forEach(p=>{map[p.date]=(map[p.date]||0)+p.mins;});
+  }
+  return map;
+}
+
+/* ---------- timer ---------- */
+function toggleTimer(){
+  if(db.timer.running){
+    const start=db.timer.startTs,end=Date.now();
+    if(end-start>30000){ // ignore <30s accidental
+      splitByDay(start,end).forEach(p=>db.sessions.push({id:"s"+p.startTs+"_"+p.endTs,date:p.date,startTs:p.startTs,endTs:p.endTs,mins:p.mins}));
+    }
+    db.timer={running:false,startTs:null};
+    save();stopTick();renderHome();toast("已停止並記錄本次配戴");
+  }else{
+    db.timer={running:true,startTs:Date.now()};
+    save();startTick();renderHome();toast("開始計時，戴上牙套囉");
+  }
+}
+function renderTimer(){
+  const btn=document.getElementById("timerBtn");
+  const st=document.getElementById("timerState");
+  const tt=document.getElementById("timerTime");
+  const ts=document.getElementById("timerStart");
+  if(db.timer.running){
+    const el=Date.now()-db.timer.startTs;
+    const h=Math.floor(el/3600000),m=Math.floor(el%3600000/60000),s=Math.floor(el%60000/1000);
+    tt.textContent=pad(h)+":"+pad(m)+":"+pad(s);
+    st.innerHTML='<span class="pulse"></span>配戴中…';
+    ts.textContent="開始於 "+hhmm(db.timer.startTs);
+    btn.textContent="■ 停止配戴";btn.className="timer-btn stop";
+  }else{
+    tt.textContent="00:00:00";
+    st.textContent="目前未計時";
+    ts.textContent="";
+    btn.textContent="▶︎ 開始配戴";btn.className="timer-btn start";
+  }
+}
+function startTick(){stopTick();tick=setInterval(()=>{renderTimer();updateWearRing();},1000);}
+function stopTick(){if(tick){clearInterval(tick);tick=null;}}
+
+/* ---------- home ---------- */
+function updateWearRing(){
+  const mins=minsForDate(todayStr());
+  const hrs=Math.round(mins/60*10)/10;
+  document.getElementById("wearNum").textContent=hrs;
+  setArc("wearArc",mins/60/RING_MAX);
+  const goal=db.settings.goal||22;
+  const st=document.getElementById("wearStatus");
+  if(mins===0)st.textContent="今天還沒有紀錄";
+  else if(hrs>=goal)st.innerHTML="✅ 已達每日目標！";
+  else st.textContent="距目標還差 "+(Math.round((goal-hrs)*10)/10)+" 小時";
+  document.getElementById("wearGoalTxt").textContent="每日目標 "+goal+" 小時";
+}
+function setArc(id,frac){frac=Math.max(0,Math.min(1,frac));document.getElementById(id).style.strokeDashoffset=(C*(1-frac)).toFixed(1);}
+function renderHome(){
+  renderBanners();
+  const t=db.tray;
+  const mt=maxTotal();
+  const cs=trayStartDate(t.cur), ce=trayEndDate(t.cur);
+  document.getElementById("hTray").textContent=t.cur||"—";
+  document.getElementById("hTotal").textContent=mt?(" / "+mt):"";
+  document.getElementById("hStart").textContent=(cs&&ce)?("配戴 "+fmtDate(cs)+" – "+fmtDate(ce)):(cs?("開始配戴 "+fmtDate(cs)):"尚未設定療程");
+  // countdown boxes
+  let boxes=[];
+  let worn=cs?(daysBetween(cs,todayStr())+1):0; if(worn<0)worn=0;
+  boxes.push(`<div><b>${worn}</b><span>配戴第幾天</span></div>`);
+  const dd=changeDueDate();
+  if(dd){const n=daysBetween(todayStr(),dd);boxes.push(`<div class="sep"></div><div><b>${n<0?('逾'+(-n)):n===0?'今晚':n}</b><span>距換牙套(天)</span></div>`);}
+  const nv=db.reminders.nextVisit;
+  if(nv){const n=daysBetween(todayStr(),nv);if(n>=0)boxes.push(`<div class="sep"></div><div><b>${n===0?'今天':n}</b><span>距回診(天)</span></div>`);}
+  document.getElementById("hCountdown").innerHTML=boxes.join("");
+  // wear
+  document.getElementById("wearDateLbl").textContent=fmtDate(todayStr());
+  updateWearRing();
+  renderTimer();
+  // stats for current tray
+  const map=dailyMap();const goal=db.settings.goal||22;const start=cs;
+  let sum=0,cnt=0,good=0;
+  for(const[d,m] of Object.entries(map)){if(!start||d>=start){sum+=m;cnt++;if(m/60>=goal)good++;}}
+  document.getElementById("sAvg").textContent=cnt?(Math.round(sum/cnt/60*10)/10):"–";
+  document.getElementById("sDays").textContent=cnt;
+  document.getElementById("sGood").textContent=good;
+}
+
+/* ---------- trays ---------- */
+function openTrayEdit(){go('trays',document.querySelector('nav.tabbar button[data-p=trays]'));}
+function renderTrays(){
+  const t=db.tray;
+  const mt=maxTotal();
+  document.getElementById("tStartDate").value=t.startDate||"";
+  document.getElementById("tCur").value=t.cur||"";
+  document.getElementById("tUpper").value=t.totalUpper||"";
+  document.getElementById("tLower").value=t.totalLower||"";
+  // progress ring based on max total
+  const pct=(mt&&t.cur)?Math.min(100,Math.round(t.cur/mt*100)):0;
+  document.getElementById("progPct").textContent=pct+"%";
+  setArc("progArc",pct/100);
+  document.getElementById("progTxt").textContent=`第 ${t.cur||0} 副`;
+  let legs=[];
+  if(t.totalUpper)legs.push("上排 "+Math.min(t.cur,t.totalUpper)+"/"+t.totalUpper+(t.cur>=t.totalUpper?" ✓":""));
+  if(t.totalLower)legs.push("下排 "+Math.min(t.cur,t.totalLower)+"/"+t.totalLower+(t.cur>=t.totalLower?" ✓":""));
+  document.getElementById("progLeft").textContent=legs.length?legs.join("　"):"設定總副數後顯示進度";
+  // schedule editor
+  renderSchedRows();
+  // current tray info
+  const cs=trayStartDate(t.cur),ce=trayEndDate(t.cur),dd=changeDueDate();
+  document.getElementById("cInfoNo").textContent=t.cur?("第 "+t.cur+" 副"):"–";
+  document.getElementById("cInfoRange").textContent=(cs&&ce)?(fmtDate(cs)+" – "+fmtDate(ce)):(cs?("自 "+fmtDate(cs)):"未設定");
+  document.getElementById("cInfoLeft").textContent=dd?(()=>{const n=daysBetween(todayStr(),dd);return (n<0?('逾期 '+(-n)+' 天'):n===0?'就是今晚':('還有 '+n+' 天'))+"（"+fmtDate(dd)+"）";})():"設定排程後顯示";
+  document.getElementById("cStart").value=cs||"";
+  // schedule preview
+  renderSchedPreview();
+  // reminders panel
+  document.getElementById("rChange").textContent=dd?(fmtDate(dd)+"（"+(()=>{const n=daysBetween(todayStr(),dd);return n<0?('逾期'+(-n)+'天'):n===0?'就是今晚':('剩'+n+'天');})()+"）"):"設定排程後顯示";
+  document.getElementById("rVisitShow").textContent=db.reminders.nextVisit?fmtDate(db.reminders.nextVisit):"未設定";
+  document.getElementById("rVisit").value=db.reminders.nextVisit||"";
+  // history
+  const box=document.getElementById("trayHistory");
+  if(!db.history.length){box.innerHTML='<div class="empty"><span class="em">🕘</span>還沒有換牙套紀錄</div>';return;}
+  box.innerHTML=db.history.slice().reverse().map(h=>`
+    <div class="list-item">
+      <div class="li-body">
+        <div class="li-date">${fmtDate(h.date)}<span class="li-tag">第 ${h.tray} 副</span></div>
+        <div class="txt">${h.days!=null?("配戴 "+h.days+" 天後更換"):"開始配戴"}</div>
+      </div>
+    </div>`).join("");
+}
+function renderSchedRows(){
+  const box=document.getElementById("scheduleRows");
+  const s=db.tray.schedule||[];
+  if(!s.length){box.innerHTML='<div class="hint" style="margin:0 0 4px">尚未設定，點下方「新增一段」或「帶入範例」。</div>';return;}
+  box.innerHTML=s.map((r,i)=>`
+    <div class="row2" style="grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:8px">
+      <label class="fld" style="margin:0"><span class="t">起副</span><input type="number" inputmode="numeric" min="1" value="${r.from||''}" onchange="editSched(${i},'from',this.value)"></label>
+      <label class="fld" style="margin:0"><span class="t">迄副</span><input type="number" inputmode="numeric" min="1" value="${r.to==null?'':r.to}" placeholder="最後" onchange="editSched(${i},'to',this.value)"></label>
+      <label class="fld" style="margin:0"><span class="t">天數</span><input type="number" inputmode="numeric" min="1" value="${r.days||''}" onchange="editSched(${i},'days',this.value)"></label>
+      <button class="li-del" style="padding-bottom:12px" onclick="delSchedRow(${i})">🗑</button>
+    </div>`).join("");
+}
+function editSched(i,k,v){
+  const n=parseInt(v);
+  db.tray.schedule[i][k]=(k==='to'&&(v===''||isNaN(n)))?null:(isNaN(n)?null:n);
+}
+function addSchedRow(){
+  if(!db.tray.schedule)db.tray.schedule=[];
+  const last=db.tray.schedule[db.tray.schedule.length-1];
+  const from=last&&last.to?last.to+1:(last?"":1);
+  db.tray.schedule.push({from:from||1,to:null,days:7});
+  renderSchedRows();
+}
+function delSchedRow(i){db.tray.schedule.splice(i,1);renderSchedRows();}
+function fillSampleSchedule(){
+  db.tray.schedule=[{from:1,to:3,days:10},{from:4,to:null,days:7}];
+  if(!db.tray.startDate)document.getElementById("tStartDate").value="2026-07-13";
+  renderSchedRows();toast("已帶入範例，記得按下方儲存");
+}
+function saveSchedule(){
+  const s=(db.tray.schedule||[]).filter(r=>r.from&&r.days);
+  s.sort((a,b)=>a.from-b.from);
+  db.tray.schedule=s;
+  save();renderTrays();renderHome();toast("排程已儲存");
+}
+function renderSchedPreview(){
+  const box=document.getElementById("schedulePreview");
+  const mt=maxTotal();
+  if(!db.tray.startDate||!(db.tray.schedule||[]).length||!mt){box.innerHTML='<div class="hint" style="margin:0">填好療程開始日、總副數與天數排程後，這裡會列出每一副的日期。</div>';return;}
+  let rows=[];
+  for(let n=1;n<=mt;n++){
+    const s=trayStartDate(n),e=trayEndDate(n);
+    if(!s)break;
+    const cur=n===db.tray.cur;
+    rows.push(`<div class="seg-row" style="${cur?'font-weight:700;color:var(--accent)':''}"><span>第 ${n} 副${cur?' ◀ 目前':''}</span><span>${fmtDate(s)} – ${e?fmtDate(e):'?'}</span></div>`);
+  }
+  box.innerHTML=`<div class="day-group" style="margin:0">${rows.join("")}</div>`;
+}
+function saveTherapy(){
+  const sd=document.getElementById("tStartDate").value;
+  const cur=parseInt(document.getElementById("tCur").value);
+  const up=parseInt(document.getElementById("tUpper").value);
+  const lo=parseInt(document.getElementById("tLower").value);
+  if(isNaN(cur)||cur<1){toast("請填目前第幾副");return;}
+  db.tray.startDate=sd||db.tray.startDate||null;
+  db.tray.cur=cur;
+  db.tray.totalUpper=isNaN(up)?null:up;
+  db.tray.totalLower=isNaN(lo)?null:lo;
+  save();renderTrays();renderHome();toast("已儲存");
+}
+function saveCurStart(){
+  const v=document.getElementById("cStart").value;
+  if(!db.tray.overrides)db.tray.overrides={};
+  if(v)db.tray.overrides[db.tray.cur]=v; else delete db.tray.overrides[db.tray.cur];
+  save();renderTrays();renderHome();toast("已更新這副開始日");
+}
+function advanceTray(){
+  const t=db.tray;
+  if(!t.cur){toast("請先到「進度」設定目前第幾副");return;}
+  const cs=trayStartDate(t.cur);
+  let wornDays=cs?daysBetween(cs,todayStr()):null;
+  db.history.push({date:todayStr(),tray:t.cur,days:wornDays});
+  const mt=maxTotal();
+  if(mt&&t.cur>=mt){toast("🎉 已是最後一副！療程完成");}
+  else{t.cur=t.cur+1;}
+  if(!t.overrides)t.overrides={};
+  t.overrides[t.cur]=todayStr(); // 記錄實際更換日
+  save();renderHome();toast("已換到第 "+t.cur+" 副（開始日記為今天）");
+}
+function saveVisit(){
+  db.reminders.nextVisit=document.getElementById("rVisit").value||null;
+  save();renderTrays();renderHome();toast("已儲存回診日");
+}
+
+/* ---------- records / backfill ---------- */
+function setBackMode(m,btn){
+  backMode=m;
+  document.getElementById("segTime").classList.toggle("on",m==="time");
+  document.getElementById("segHours").classList.toggle("on",m==="hours");
+  document.getElementById("backTime").style.display=m==="time"?"block":"none";
+  document.getElementById("backHours").style.display=m==="hours"?"block":"none";
+}
+function addBackfill(){
+  const date=document.getElementById("bDate").value;
+  if(!date){toast("請選日期");return;}
+  if(backMode==="hours"){
+    const h=parseFloat(document.getElementById("bHours").value);
+    if(isNaN(h)||h<=0||h>24){toast("請輸入 0–24 小時");return;}
+    db.sessions.push({id:"m"+Date.now(),date,startTs:null,endTs:null,mins:Math.round(h*60),manual:true});
+    document.getElementById("bHours").value="";
+  }else{
+    const s=document.getElementById("bStart").value,e=document.getElementById("bEnd").value;
+    if(!s||!e){toast("請填開始與結束時間");return;}
+    let startTs=new Date(date+"T"+s+":00").getTime();
+    let endTs=new Date(date+"T"+e+":00").getTime();
+    if(endTs<=startTs)endTs+=86400000; // 跨到隔天
+    splitByDay(startTs,endTs).forEach(p=>db.sessions.push({id:"s"+p.startTs+"_"+p.endTs,date:p.date,startTs:p.startTs,endTs:p.endTs,mins:p.mins}));
+    document.getElementById("bStart").value="";document.getElementById("bEnd").value="";
+  }
+  save();renderRecords();renderHome();toast("已新增紀錄");
+}
+function renderRecords(){
+  if(!document.getElementById("bDate").value)document.getElementById("bDate").value=todayStr();
+  const list=document.getElementById("recordsList");
+  // group sessions by date (completed only; running not shown as fixed record)
+  const groups={};
+  db.sessions.forEach(x=>{(groups[x.date]=groups[x.date]||[]).push(x);});
+  const dates=Object.keys(groups).sort().reverse();
+  if(!dates.length){list.innerHTML='<div class="empty"><span class="em">📚</span>還沒有配戴紀錄，用計時器或上方補登開始吧</div>';return;}
+  const goal=db.settings.goal||22;
+  list.innerHTML=dates.map(d=>{
+    const segs=groups[d].slice().sort((a,b)=>(a.startTs||0)-(b.startTs||0));
+    const tot=segs.reduce((s,x)=>s+x.mins,0);
+    const ok=tot/60>=goal;
+    const rows=segs.map(x=>{
+      const label=x.startTs?(hhmm(x.startTs)+"–"+hhmm(x.endTs)):(x.manual?"手動補登":"—");
+      return `<div class="seg-row"><span>${label}　${fmtHrs(x.mins)} 小時</span><button class="li-del" onclick="delSession('${x.id}')">🗑</button></div>`;
+    }).join("");
+    return `<div class="day-group">
+      <div class="day-head"><span class="d">${fmtDate(d)}</span><span class="tot ${ok?'ok':''}">${fmtHrs(tot)} 小時${ok?' ✅':''}</span></div>
+      ${rows}
+    </div>`;
+  }).join("");
+}
+function delSession(id){db.sessions=db.sessions.filter(x=>x.id!==id);save();renderRecords();renderHome();toast("已刪除");}
+
+/* ---------- photos ---------- */
+function onPhotoPicked(e){
+  const file=e.target.files[0];e.target.value="";if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1080;let w=img.width,h=img.height;
+      if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      const data=cv.toDataURL("image/jpeg",0.72);
+      db.photos.push({id:Date.now()+"_"+Math.floor(Math.random()*1000),date:todayStr(),tray:db.tray.cur||null,data});
+      save();renderPhotos();toast("照片已儲存");
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function renderPhotos(){
+  const grid=document.getElementById("photoGrid");
+  const empty=document.getElementById("photoEmpty");
+  if(!db.photos.length){grid.innerHTML="";empty.style.display="block";return;}
+  empty.style.display="none";
+  grid.innerHTML=db.photos.slice().reverse().map(p=>`
+    <div class="photo-card" onclick="openPhoto('${p.id}')">
+      <img src="${p.data}" alt="牙齒照片">
+      <div class="photo-meta"><span>${fmtDate(p.date)}</span>${p.tray?("<span>第"+p.tray+"副</span>"):""}</div>
+    </div>`).join("");
+}
+function openPhoto(id){
+  const p=db.photos.find(x=>x.id===id);if(!p)return;
+  curPhotoId=id;
+  document.getElementById("photoBig").src=p.data;
+  document.getElementById("photoBigMeta").textContent=fmtDate(p.date)+(p.tray?(" ・ 第 "+p.tray+" 副"):"");
+  document.getElementById("photoModal").classList.add("open");
+}
+function closePhoto(){document.getElementById("photoModal").classList.remove("open");}
+function deleteCurrentPhoto(){if(!curPhotoId)return;db.photos=db.photos.filter(p=>p.id!==curPhotoId);save();closePhoto();renderPhotos();toast("已刪除照片");}
+
+/* ---------- notes ---------- */
+function renderSympChips(){
+  document.getElementById("sympChips").innerHTML=SYMPTOMS.map(s=>`<button class="chip${selSymptoms.has(s)?' on':''}" onclick="toggleSymp('${s}',this)">${s}</button>`).join("");
+}
+function toggleSymp(s,btn){if(selSymptoms.has(s))selSymptoms.delete(s);else selSymptoms.add(s);btn.classList.toggle("on");}
+function saveNote(){
+  const txt=document.getElementById("noteText").value.trim();
+  if(!txt&&selSymptoms.size===0){toast("請選症狀或輸入內容");return;}
+  db.notes.push({id:Date.now(),date:todayStr(),tray:db.tray.cur||null,text:txt,symptoms:[...selSymptoms]});
+  save();document.getElementById("noteText").value="";selSymptoms.clear();renderSympChips();renderNotes();toast("已儲存備註");
+}
+function renderNotes(){
+  const list=document.getElementById("notesList");
+  if(!db.notes.length){list.innerHTML='<div class="empty"><span class="em">📖</span>還沒有備註記錄</div>';return;}
+  list.innerHTML=db.notes.slice().reverse().map(it=>{
+    const syms=(it.symptoms||[]).map(s=>`<span class="li-tag">${s}</span>`).join("");
+    return `<div class="list-item">
+      <div class="li-body">
+        <div class="li-date">${fmtDate(it.date)}${it.tray?'<span class="li-tag">第'+it.tray+'副</span>':''}${syms}</div>
+        ${it.text?'<div class="txt">'+escapeHtml(it.text)+'</div>':''}
+      </div>
+      <button class="li-del" onclick="delNote(${it.id})">🗑</button>
+    </div>`;
+  }).join("");
+}
+function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function delNote(id){db.notes=db.notes.filter(n=>n.id!==id);save();renderNotes();toast("已刪除");}
+
+/* ---------- settings / backup ---------- */
+function openSettings(){document.getElementById("setGoal").value=db.settings.goal||22;document.getElementById("setNotify").checked=!!db.settings.notify;document.getElementById("settingsModal").classList.add("open");}
+function closeSettings(){document.getElementById("settingsModal").classList.remove("open");}
+function onNotifyToggle(){
+  const cb=document.getElementById("setNotify");
+  if(cb.checked&&"Notification" in window&&Notification.permission!=="granted"){
+    Notification.requestPermission().then(p=>{if(p!=="granted"){cb.checked=false;toast("未取得通知權限");}});
+  }
+}
+function saveSettings(){
+  const g=parseFloat(document.getElementById("setGoal").value);
+  if(isNaN(g)||g<1||g>24){toast("目標請填 1–24");return;}
+  db.settings.goal=g;
+  db.settings.notify=document.getElementById("setNotify").checked;
+  save();closeSettings();renderHome();toast("設定已更新");
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="牙套備份_"+todayStr()+".json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);toast("已匯出備份檔");
+}
+function importData(e){
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.tray)throw 0;
+      db=mergeDeep(defaults(),d);
+      if(db.wear){for(const[date,h] of Object.entries(db.wear)){if(h>0)db.sessions.push({id:"m"+date,date,startTs:null,endTs:null,mins:Math.round(h*60),manual:true});}delete db.wear;}
+      // 相容舊 tray 格式
+      const tt=db.tray||{};
+      if(!tt.schedule)tt.schedule=[];if(!tt.overrides)tt.overrides={};
+      if(tt.startDate==null&&tt.start)tt.startDate=tt.start;
+      if(tt.totalUpper==null&&tt.total)tt.totalUpper=tt.total;
+      if(tt.totalLower==null&&tt.total)tt.totalLower=tt.total;
+      if(tt.schedule.length===0&&tt.days)tt.schedule=[{from:1,to:null,days:tt.days}];
+      delete tt.start;delete tt.total;delete tt.days;db.tray=tt;
+      save();stopTick();if(db.timer.running)startTick();
+      renderHome();renderTrays();renderRecords();renderPhotos();renderNotes();closeSettings();toast("已還原備份");
+    }catch(err){toast("檔案格式不正確");}
+  };
+  r.readAsText(f);
+}
+function wipeAll(){
+  if(!confirm("確定要清除所有資料嗎？此動作無法復原，建議先匯出備份。"))return;
+  localStorage.removeItem(KEY);localStorage.removeItem("aligner_tracker_v1");
+  db=defaults();selSymptoms.clear();stopTick();
+  renderHome();renderTrays();renderRecords();renderPhotos();renderNotes();renderSympChips();closeSettings();toast("已清除所有資料");
+}
+
+/* ---------- init ---------- */
+renderSympChips();
+renderHome();
+if(db.timer.running)startTick();
+maybeNotify();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderHome();if(db.timer.running)startTick();else stopTick();}});
+</script>
+</body>
+</html>
