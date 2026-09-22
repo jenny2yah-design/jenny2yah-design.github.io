@@ -362,13 +362,6 @@
     </div>
 
     <div class="card">
-      <h2>📊 已戴完的每副統計</h2>
-      <div id="trayStatsSum"></div>
-      <div id="trayStatsList"></div>
-      <div class="hint">每副從換上到換掉的實際時間計算，扣掉期間的取下時間；沒有取下紀錄的時段都算有戴。換牙套時間用按「換下一副」的時間；之前沒記到時間的，照「配戴 N 天後更換」推算：照排程天數換的取當天晚上的戴回時間，多 1 天的（過了 0 點才按）取那天凌晨的戴回時間。推算不出來的（例如第 1 副沒有換上的紀錄）依袋子日期計算。正在戴的這副請看首頁「本副概況」。<br>每日達標：這副每天的配戴時數 <i class="lv good"></i>20.0 小時以上、<i class="lv mid"></i>18.0–19.9、<i class="lv bad"></i>未滿 18.0 各有幾天；換牙套那天算中午戴的那副。</div>
-    </div>
-
-    <div class="card">
       <h2>✎ 療程設定</h2>
       <label class="fld"><span class="t">療程開始日（第一副開始配戴日）</span><input type="date" id="tStartDate"></label>
       <label class="fld"><span class="t">目前第幾副</span><input type="number" id="tCur" inputmode="numeric" min="1"></label>
@@ -414,8 +407,11 @@
     </div>
 
     <div class="card">
-      <h2>🕘 換牙套紀錄</h2>
+      <h2>🕘 換牙套紀錄與配戴統計</h2>
+      <div id="trayStatsSum"></div>
+      <div id="trayStatsList"></div>
       <div id="trayHistory"></div>
+      <div class="hint">每副從換上到換掉的實際時間計算，扣掉期間的取下時間；沒有取下紀錄的時段都算有戴。換牙套時間用按「換下一副」的時間；之前沒記到時間的，照「配戴 N 天後更換」推算：照排程天數換的取當天晚上的戴回時間，多 1 天的（過了 0 點才按）取那天凌晨的戴回時間。推算不出來的（例如第 1 副沒有換上的紀錄）依袋子日期計算。正在戴的這副請看首頁「本副概況」。<br>每日達標：這副每天的配戴時數 <i class="lv good"></i>20.0 小時以上、<i class="lv mid"></i>18.0–19.9、<i class="lv bad"></i>未滿 18.0 各有幾天；換牙套那天算中午戴的那副。</div>
     </div>
   </section>
 
@@ -816,11 +812,12 @@ function renderTrays(){
   document.getElementById("rChange").textContent=dd?(fmtDate(dd)+"（"+(()=>{const n=daysBetween(todayStr(),dd);return n<0?('逾期'+(-n)+'天'):n===0?'就是今晚':('剩'+n+'天');})()+"）"):"設定排程後顯示";
   document.getElementById("rVisitShow").textContent=db.reminders.nextVisit?fmtDate(db.reminders.nextVisit):"未設定";
   document.getElementById("rVisit").value=db.reminders.nextVisit||"";
-  renderTrayStats();
-  // history
+  const shown=renderTrayStats();
+  // history(已經有統計的那副不重複列)
   const box=document.getElementById("trayHistory");
-  if(!db.history.length){box.innerHTML='<div class="empty"><span class="em">🕘</span>還沒有換牙套紀錄</div>';return;}
-  box.innerHTML=db.history.slice().reverse().map(h=>`
+  const rest=db.history.filter(h=>!shown.has(h.tray));
+  if(!shown.size&&!rest.length){box.innerHTML='<div class="empty"><span class="em">🕘</span>還沒有換牙套紀錄</div>';return;}
+  box.innerHTML=rest.slice().reverse().map(h=>`
     <div class="list-item">
       <div class="li-body">
         <div class="li-date">${fmtDate(h.date)}<span class="li-tag">第 ${h.tray} 副</span></div>
@@ -911,11 +908,7 @@ function renderTrayStats(){
   const last=(mt&&cur>=mt&&changeTs(changes,cur))?cur:cur-1; // 最後一副也按過「換下一副」= 療程完成,一起算
   const all=[];
   for(let n=last;n>=1;n--){const st=doneTrayStats(n,rec,changes);if(st)all.push(st);}
-  if(!all.length){
-    sumBox.innerHTML="";
-    box.innerHTML='<div class="empty"><span class="em">📊</span>還沒有戴完的牙套，換下一副後這裡就會出現上一副的統計</div>';
-    return;
-  }
+  if(!all.length){sumBox.innerHTML="";box.innerHTML="";return new Set();}
   const T=all.reduce((a,x)=>({worn:a.worn+x.worn,span:a.span+x.span}),{worn:0,span:0});
   const tAvg=T.worn/T.span*24;
   sumBox.innerHTML=`<div class="stat-mini" style="margin-bottom:14px">
@@ -945,6 +938,7 @@ function renderTrayStats(){
       ${notes.map(t=>`<div class="tstat-foot">${t}</div>`).join("")}
     </div>`;
   }).join("");
+  return new Set(all.map(st=>st.tray)); // 有統計的副數,換牙套紀錄就不重複列
 }
 function renderSchedRows(){
   const box=document.getElementById("scheduleRows");
