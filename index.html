@@ -250,6 +250,22 @@
   .stat-mini .m span{font-size:11px;color:var(--muted);font-weight:600}
   @media (prefers-color-scheme: dark){.stat-mini .m b{color:var(--accent)}}
 
+  /* 每副配戴統計 */
+  .tstat{border:1px solid var(--line);border-radius:16px;padding:13px 15px;margin-bottom:10px;background:var(--card-2)}
+  .tstat-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
+  .tstat-when{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px}
+  .tstat-head .n{font-weight:800;font-size:15px;white-space:nowrap}
+  .tstat-head .r{font-size:12px;color:var(--muted);font-weight:600;text-align:right}
+  .tstat-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tstat-nums b{display:block;font-size:19px;font-weight:800;letter-spacing:-.3px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tstat-nums b small{font-size:12px;font-weight:700;color:var(--muted);margin-left:2px;letter-spacing:0}
+  .tstat-nums span{font-size:12px;color:var(--muted);font-weight:600}
+  .lv{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;position:relative;top:-1px}
+  .lvrow{display:flex;gap:8px;align-items:center;height:24px;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+  .lv.good{background:#16a36a} .lv.mid{background:#f08c1a} .lv.bad{background:#e5484d}
+  @media (prefers-color-scheme: dark){.lv.good{background:#34d399} .lv.mid{background:#fb923c} .lv.bad{background:#f87171}}
+  .tstat-foot{font-size:12px;color:var(--muted);margin-top:9px;font-weight:600}
+
   .seg{display:flex;background:var(--bg-tint);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px}
   .seg button{flex:1;border:none;background:none;color:var(--muted);font-weight:700;font-size:13px;padding:9px;
     border-radius:10px;transition:background .2s,color .2s,box-shadow .2s}
@@ -343,6 +359,13 @@
           <div class="goal" id="progLeft">尚未設定總副數</div>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 已戴完的每副統計</h2>
+      <div id="trayStatsSum"></div>
+      <div id="trayStatsList"></div>
+      <div class="hint">每副從換上到換掉的實際時間計算，扣掉期間的取下時間；沒有取下紀錄的時段都算有戴。換牙套時間用按「換下一副」的時間；之前沒記到時間的，照「配戴 N 天後更換」推算：照排程天數換的取當天晚上的戴回時間，多 1 天的（過了 0 點才按）取那天凌晨的戴回時間。推算不出來的（例如第 1 副沒有換上的紀錄）依袋子日期計算。正在戴的這副請看首頁「本副概況」。<br>每日達標：這副每天的配戴時數 <i class="lv good"></i>20.0 小時以上、<i class="lv mid"></i>18.0–19.9、<i class="lv bad"></i>未滿 18.0 各有幾天；換牙套那天算中午戴的那副。</div>
     </div>
 
     <div class="card">
@@ -793,6 +816,7 @@ function renderTrays(){
   document.getElementById("rChange").textContent=dd?(fmtDate(dd)+"（"+(()=>{const n=daysBetween(todayStr(),dd);return n<0?('逾期'+(-n)+'天'):n===0?'就是今晚':('剩'+n+'天');})()+"）"):"設定排程後顯示";
   document.getElementById("rVisitShow").textContent=db.reminders.nextVisit?fmtDate(db.reminders.nextVisit):"未設定";
   document.getElementById("rVisit").value=db.reminders.nextVisit||"";
+  renderTrayStats();
   // history
   const box=document.getElementById("trayHistory");
   if(!db.history.length){box.innerHTML='<div class="empty"><span class="em">🕘</span>還沒有換牙套紀錄</div>';return;}
@@ -803,6 +827,124 @@ function renderTrays(){
         <div class="txt">${h.days!=null?("配戴 "+h.days+" 天後更換"):"開始配戴"}</div>
       </div>
     </div>`).join("");
+}
+/* ---- 已戴完的每副統計 ---- */
+/* 從換上這副到換掉這副的實際時間,扣掉期間的取下時間;沒有取下紀錄的時段都算有戴。
+   換牙套時間:有按下時間的用按下時間;舊紀錄用「配戴 N 天後更換」推算
+   (N=排程天數 → 當天晚上換,取當晚戴回時間;N=排程天數+1 → 過 0 點才換,取那天凌晨戴回時間)。
+   推算不出來的依袋子日期(開始日 ～ 下一副開始日前一天)。目前這副不在這裡算(看首頁本副概況) */
+function removalSpans(){ // 取下區段,跨 0 點被切成兩段的接回來
+  const out=[];
+  db.sessions.filter(x=>x.startTs&&x.endTs).map(x=>({s:x.startTs,e:x.endTs})).sort((a,b)=>a.s-b.s)
+    .forEach(x=>{const p=out[out.length-1];if(p&&x.s<=p.e)p.e=Math.max(p.e,x.e);else out.push(x);});
+  return out;
+}
+function guessChangeTs(h,spans){
+  const normal=daysForTray(h.tray);
+  if(normal==null||h.days==null||!h.date)return null;
+  const at=(ds,hh)=>new Date(ds+"T"+pad(hh)+":00:00").getTime();
+  let best=null;
+  if(h.days===normal){ // 當天晚上換:晚上那次取下的戴回時間(跨過 0 點也照算)
+    const a=at(h.date,17),b=at(addDays(h.date,1),0);
+    spans.forEach(x=>{if(x.s>=a&&x.s<b&&(best==null||x.e>best))best=x.e;});
+  }else if(h.days===normal+1){ // 過 0 點才換:那天凌晨的戴回時間
+    const a=at(h.date,0),b=at(h.date,6);
+    spans.forEach(x=>{if(x.e>=a&&x.e<=b&&(best==null||x.e>best))best=x.e;}); // 剛好 0:00 戴回也算
+  }
+  return best;
+}
+function changeTimes(){
+  const spans=removalSpans();
+  return (db.history||[]).map(h=>({tray:h.tray,ts:h.ts||guessChangeTs(h,spans)})).filter(x=>x.ts);
+}
+function changeTs(list,tray,before){ // 最後一次換掉第 tray 副的時間
+  let ts=null;
+  list.forEach(h=>{if(h.tray===tray&&(before==null||h.ts<before)&&(ts==null||h.ts>ts))ts=h.ts;});
+  return ts;
+}
+function removedMinsBetween(a,b){
+  const segs=db.timer.running?db.sessions.concat([{startTs:db.timer.startTs,endTs:Date.now()}]):db.sessions;
+  let m=0;
+  segs.forEach(x=>{
+    if(x.startTs&&x.endTs){m+=Math.max(0,Math.min(b,x.endTs)-Math.max(a,x.startTs))/60000;return;}
+    // 直接填時數的沒有時間點,換牙套那天依落在區間內的比例分
+    const d0=new Date(x.date+"T00:00:00").getTime(),d1=new Date(addDays(x.date,1)+"T00:00:00").getTime();
+    m+=x.mins*Math.max(0,Math.min(b,d1)-Math.max(a,d0))/(d1-d0);
+  });
+  return m;
+}
+function doneTrayStats(n,recDates,changes){
+  const end=changeTs(changes,n),start=(n>1&&end)?changeTs(changes,n-1,end):null;
+  const today=todayStr();
+  let st,days=[];
+  if(start&&end){
+    st={tray:n,exact:true,start,end,span:(end-start)/60000};
+    st.worn=Math.max(0,st.span-removedMinsBetween(start,end));
+    // 達標以「日」判定:那天中午戴的是這副,那天就算這副的
+    for(let d=logicalDateStr(start);d<=logicalDateStr(end);d=addDays(d,1)){
+      const noon=new Date(d+"T12:00:00").getTime();
+      if(noon>=start&&noon<end)days.push(d);
+    }
+  }else{
+    const s=trayStartDate(n),next=trayStartDate(n+1);
+    if(!s||!next||next<=s||next>today)return null;
+    const e=trayEndDate(n);
+    st={tray:n,exact:false,start:s,end:e,span:daysBetween(s,next)*1440,worn:0};
+    for(let d=s;d<=e;d=addDays(d,1)){st.worn+=wornMinsForDate(d);days.push(d);}
+  }
+  days=days.filter(d=>d<today); // 今天還沒過完,不判定
+  st.lv={good:0,mid:0,bad:0};
+  days.forEach(d=>st.lv[wearLevel(wornMinsForDate(d))]++);
+  st.noRec=days.filter(d=>!recDates.has(d)).length;
+  return st;
+}
+function statHrs(mins){const h=mins/60;return h>=1000?String(Math.round(h)):String(Math.round(h*10)/10);}
+function statSpan(mins){const h=Math.round(mins/60),d=Math.floor(h/24);return [d?d+" 天":"",(h%24||!d)?(h%24)+" 小時":""].filter(Boolean).join(" ");}
+function wearLevel(mins){const v=fmtHrs(mins);return v>=20?'good':v>=18?'mid':'bad';} // 一天配戴:20 以上綠、18–19.9 橘、未滿 18 紅
+function statWhen(ts,withYear){const d=new Date(ts);return (withYear?d.getFullYear()+"/":"")+pad(d.getMonth()+1)+"/"+pad(d.getDate())+" "+hhmm(ts);}
+function renderTrayStats(){
+  const sumBox=document.getElementById("trayStatsSum");
+  const box=document.getElementById("trayStatsList");
+  const rec=new Set(db.sessions.map(x=>x.date));
+  const changes=changeTimes();
+  const cur=db.tray.cur||1,mt=maxTotal();
+  const last=(mt&&cur>=mt&&changeTs(changes,cur))?cur:cur-1; // 最後一副也按過「換下一副」= 療程完成,一起算
+  const all=[];
+  for(let n=last;n>=1;n--){const st=doneTrayStats(n,rec,changes);if(st)all.push(st);}
+  if(!all.length){
+    sumBox.innerHTML="";
+    box.innerHTML='<div class="empty"><span class="em">📊</span>還沒有戴完的牙套，換下一副後這裡就會出現上一副的統計</div>';
+    return;
+  }
+  const T=all.reduce((a,x)=>({worn:a.worn+x.worn,span:a.span+x.span}),{worn:0,span:0});
+  const tAvg=T.worn/T.span*24;
+  sumBox.innerHTML=`<div class="stat-mini" style="margin-bottom:14px">
+      <div class="m"><b>${statHrs(T.worn)}</b><span>累計配戴(小時)</span></div>
+      <div class="m"><b>${(Math.round(tAvg*10)/10).toFixed(1)}</b><span>整體平均/天</span></div>
+      <div class="m"><b>${all.length}</b><span>已戴完副數</span></div>
+    </div>`;
+  box.innerHTML=all.map(st=>{
+    let range;
+    if(st.exact){
+      range=statWhen(st.start,true)+" – "+statWhen(st.end,new Date(st.end).getFullYear()!==new Date(st.start).getFullYear());
+    }else{
+      range=fmtDate(st.start)+" – "+(st.end.slice(0,4)===st.start.slice(0,4)?st.end.slice(5).replace("-","/"):fmtDate(st.end));
+    }
+    const avg=st.worn/st.span*24;
+    const notes=[];
+    if(!st.exact)notes.push("推算不出換牙套時間，依袋子日期計算");
+    if(st.noRec)notes.push(`其中 ${st.noRec} 天沒有取下紀錄，以整天配戴計`);
+    return `<div class="tstat">
+      <div class="tstat-head"><span class="n">第 ${st.tray} 副</span><span class="r">配戴 ${statSpan(st.span)}</span></div>
+      <div class="tstat-when">${range}</div>
+      <div class="tstat-nums">
+        <div><b>${statHrs(st.worn)}<small>h</small></b><span>總配戴</span></div>
+        <div><b>${(Math.round(avg*10)/10).toFixed(1)}<small>h</small></b><span>平均／天</span></div>
+        <div><div class="lvrow">${["good","mid","bad"].map(k=>`<span><i class="lv ${k}"></i>${st.lv[k]}</span>`).join("")}</div><span>每日達標</span></div>
+      </div>
+      ${notes.map(t=>`<div class="tstat-foot">${t}</div>`).join("")}
+    </div>`;
+  }).join("");
 }
 function renderSchedRows(){
   const box=document.getElementById("scheduleRows");
@@ -875,7 +1017,7 @@ function advanceTray(){
   if(!t.cur){toast("請先到「進度」設定目前第幾副");return;}
   const cs=trayStartDate(t.cur);
   let wornDays=cs?daysBetween(cs,todayStr()):null;
-  db.history.push({date:todayStr(),tray:t.cur,days:wornDays});
+  db.history.push({date:todayStr(),tray:t.cur,days:wornDays,ts:Date.now()}); // ts:實際按下時間,給每副統計用
   const mt=maxTotal();
   if(mt&&t.cur>=mt){toast("🎉 已是最後一副！療程完成");}
   else{t.cur=t.cur+1;}
@@ -935,7 +1077,7 @@ function renderRecords(){
       return `<div class="seg-row"><span>${label}　取下 ${fmtDur(x.mins)}</span><button class="li-del" onclick="delSession('${x.id}')">🗑</button></div>`;
     }).join("");
     return `<div class="day-group">
-      <div class="day-head"><span class="d">${fmtDate(d)}${isToday?' ・今日':''}</span><span class="tot ${ok?'ok':''}">配戴約 ${fmtHrs(worn)}h${ok?' ✅':(isToday?'（進行中）':'')}</span></div>
+      <div class="day-head"><span class="d">${fmtDate(d)}${isToday?' ・今日':''}</span><span class="tot ${ok?'ok':''}">${isToday?'':`<i class="lv ${wearLevel(worn)}"></i>`}配戴約 ${fmtHrs(worn)}h${ok?' ✅':(isToday?'（進行中）':'')}</span></div>
       <div class="seg-row" style="color:var(--faint)"><span>取下合計 ${fmtHrs(removed)} 小時（${segs.length} 次）</span></div>
       ${rows}
     </div>`;
